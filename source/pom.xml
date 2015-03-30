@@ -6,6 +6,13 @@
     <groupId>ch.threema.apitool</groupId>
     <artifactId>msgapi-sdk-java</artifactId>
     <version>1.0.2</version>
+
+	<properties>
+		<source.encoding>UTF-8</source.encoding>
+		<project.build.sourceEncoding>${source.encoding}</project.build.sourceEncoding>
+		<project.reporting.outputEncoding>${source.encoding}</project.reporting.outputEncoding>
+	</properties>
+
     <dependencies>
         <dependency>
             <groupId>junit</groupId>
@@ -29,6 +36,15 @@
 				<configuration>
 					<source>8</source>
 					<target>8</target>
+					<encoding>${source.encoding}</encoding>
+				</configuration>
+			</plugin>
+
+			<plugin>
+				<artifactId>maven-resources-plugin</artifactId>
+				<version>2.5</version>
+				<configuration>
+					<encoding>${source.encoding}</encoding>
 				</configuration>
 			</plugin>
             <plugin>
