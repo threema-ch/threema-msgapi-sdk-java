@@ -13,6 +13,28 @@
 		<project.reporting.outputEncoding>${source.encoding}</project.reporting.outputEncoding>
 	</properties>
 
+    <scm>
+      <connection>scm:http://github.com/threema-ch/threema-msgapi-sdk-java.git</connection>
+      <developerConnection>scm:git:git@github.com:threema-ch/threema-msgapi-sdk-java.git</developerConnection>
+      <url>http://github.com/threema-ch/threema-msgapi-sdk-java</url>
+    </scm>
+
+    <organization>
+        <name>Threema GmbH, Staldenbachstrasse 11, 8808 Pfäffikon SZ, Schweiz</name>
+        <url>http://www.threema.ch</url>
+    </organization>
+  
+    <url>https://gateway.threema.ch/de</url>
+
+  <licenses>
+    <license>
+      <name>MIT-License</name>
+      <url>http://opensource.org/licenses/mit-license.php</url>
+      <distribution>repo</distribution>
+    </license>
+  </licenses>
+  
+
     <dependencies>
         <dependency>
             <groupId>junit</groupId>
