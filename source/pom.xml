@@ -3,9 +3,26 @@
          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+      <groupId>org.sonatype.oss</groupId>
+      <artifactId>oss-parent</artifactId>
+      <version>7</version>
+    </parent>
+    
     <groupId>ch.threema.apitool</groupId>
     <artifactId>msgapi-sdk-java</artifactId>
     <version>1.0.2</version>
+    <name>Threema MsgApi SDK</name>
+
+    <!-- Documentation on how to get this to maven central: -->
+    <!-- https://docs.sonatype.org/display/Repository/Sonatype+OSS+Maven+Repository+Usage+Guide#SonatypeOSSMavenRepositoryUsageGuide-7b.StageExistingArtifacts -->
+    <!-- http://central.sonatype.org/pages/ossrh-guide.html -->
+
+    <issueManagement>
+      <system>github issues</system>
+      <url>https://github.com/threema-ch/threema-msgapi-sdk-java/issues</url>
+    </issueManagement>
 
 	<properties>
 		<source.encoding>UTF-8</source.encoding>
@@ -33,7 +50,6 @@
       <distribution>repo</distribution>
     </license>
   </licenses>
-  
 
     <dependencies>
         <dependency>
@@ -48,7 +64,7 @@
             <version>2.8</version>
         </dependency>
     </dependencies>
-    <name>Threema MsgApi SDK</name>
+    
     <build>
         <plugins>
 			<plugin>
@@ -69,6 +85,7 @@
 					<encoding>${source.encoding}</encoding>
 				</configuration>
 			</plugin>
+      
             <plugin>
                 <!-- Build an executable JAR -->
                 <groupId>org.apache.maven.plugins</groupId>
@@ -84,6 +101,37 @@
                     </archive>
                 </configuration>
             </plugin>
+
+            <!-- plugins for releasing to maven central. -->
+            <plugin>
+          
+              <!-- for staging to sonatype nexus -->
+              <groupId>org.sonatype.plugins</groupId>
+              <artifactId>nexus-staging-maven-plugin</artifactId>
+              <version>1.6.3</version>
+              <extensions>true</extensions>
+              <configuration>
+                <serverId>ossrh</serverId>
+                <nexusUrl>https://oss.sonatype.org/</nexusUrl>
+                <autoReleaseAfterClose>true</autoReleaseAfterClose>
+              </configuration>
+            </plugin>
+          
+            <plugin>
+              <groupId>org.apache.maven.plugins</groupId>
+              <artifactId>maven-gpg-plugin</artifactId>
+              <version>1.5</version>
+              <executions>
+                <execution>
+                  <id>sign-artifacts</id>
+                  <phase>verify</phase>
+                  <goals>
+                    <goal>sign</goal>
+                  </goals>
+                </execution>
+              </executions>
+            </plugin>
+            
         </plugins>
     </build>
 </project>
