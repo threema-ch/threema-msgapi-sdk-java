@@ -21,12 +21,39 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE
  */
-package ch.threema.apitool;
+
+package ch.threema.apitool.results;
 
 /**
- * Abstract base class of messages that can be sent with end-to-end encryption via Threema.
+ * Result of a file upload
  */
-public abstract class ThreemaMessage {
+public class UploadResult {
+	private final int responseCode;
+	private final byte[] blobId;
 
-	protected abstract int getTypeCode();
+	public UploadResult(int responseCode, byte[] blobId) {
+		this.responseCode = responseCode;
+		this.blobId = blobId;
+	}
+
+	/**
+	 * @return the blob ID that has been created
+	 */
+	public byte[] getBlobId() {
+		return this.blobId;
+	}
+
+	/**
+	 * @return whether the upload succeeded
+	 */
+	public boolean isSuccess() {
+		return this.responseCode == 200;
+	}
+
+	/**
+	 * @return the response code of the upload
+	 */
+	public int getResponseCode() {
+		return this.responseCode;
+	}
 }

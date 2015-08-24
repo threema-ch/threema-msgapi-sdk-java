@@ -22,38 +22,25 @@
  * THE SOFTWARE
  */
 
-package ch.threema.apitool;
+package ch.threema.apitool.console.commands;
 
-/**
- * Encapsulates the 8-byte message IDs that Threema uses.
- */
-public class MessageId {
+import ch.threema.apitool.console.commands.fields.TextField;
+import ch.threema.apitool.CryptTool;
+import ch.threema.apitool.DataUtils;
 
-	public static final int MESSAGE_ID_LEN = 8;
+public class HashEmailCommand extends Command {
+	private final TextField emailField;
 
-	private final byte[] messageId;
+	public HashEmailCommand() {
+		super("Hash Email Address",
+				"Hash an email address for identity lookup. Prints the hash in hex.");
 
-	public MessageId(byte[] messageId) {
-		if (messageId.length != MESSAGE_ID_LEN)
-			throw new IllegalArgumentException("Bad message ID length");
-
-		this.messageId = messageId;
-	}
-
-	public MessageId(byte[] data, int offset) {
-		if ((offset + MESSAGE_ID_LEN) > data.length)
-			throw new IllegalArgumentException("Bad message ID buffer length");
-
-		this.messageId = new byte[MESSAGE_ID_LEN];
-		System.arraycopy(data, offset, this.messageId, 0, MESSAGE_ID_LEN);
-	}
-
-	public byte[] getMessageId() {
-		return messageId;
+		this.emailField = this.createTextField("email", true);
 	}
 
 	@Override
-	public String toString() {
-		return DataUtils.byteArrayToHexString(messageId);
+	protected void execute() throws Exception {
+		byte[] emailHash = CryptTool.hashEmail(this.emailField.getValue());
+		System.out.println(DataUtils.byteArrayToHexString(emailHash));
 	}
 }

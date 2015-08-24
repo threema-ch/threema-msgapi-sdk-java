@@ -22,38 +22,43 @@
  * THE SOFTWARE
  */
 
-package ch.threema.apitool;
+package ch.threema.apitool.messages;
+
+import java.io.UnsupportedEncodingException;
 
 /**
- * Encapsulates the 8-byte message IDs that Threema uses.
+ * A text message that can be sent/received with end-to-end encryption via Threema.
  */
-public class MessageId {
+public class TextMessage extends ThreemaMessage {
 
-	public static final int MESSAGE_ID_LEN = 8;
+	public static final int TYPE_CODE = 0x01;
 
-	private final byte[] messageId;
+	private final String text;
 
-	public MessageId(byte[] messageId) {
-		if (messageId.length != MESSAGE_ID_LEN)
-			throw new IllegalArgumentException("Bad message ID length");
-
-		this.messageId = messageId;
+	public TextMessage(String text) {
+		this.text = text;
 	}
 
-	public MessageId(byte[] data, int offset) {
-		if ((offset + MESSAGE_ID_LEN) > data.length)
-			throw new IllegalArgumentException("Bad message ID buffer length");
-
-		this.messageId = new byte[MESSAGE_ID_LEN];
-		System.arraycopy(data, offset, this.messageId, 0, MESSAGE_ID_LEN);
+	public String getText() {
+		return text;
 	}
 
-	public byte[] getMessageId() {
-		return messageId;
+	@Override
+	public int getTypeCode() {
+		return TYPE_CODE;
 	}
 
 	@Override
 	public String toString() {
-		return DataUtils.byteArrayToHexString(messageId);
+		return text;
+	}
+
+	@Override
+	public byte[] getData() {
+		try {
+			return text.getBytes("UTF-8");
+		} catch (UnsupportedEncodingException e) {
+			return null;
+		}
 	}
 }

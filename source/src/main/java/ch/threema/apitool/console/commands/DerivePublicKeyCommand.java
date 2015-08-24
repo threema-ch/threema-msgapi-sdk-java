@@ -22,38 +22,28 @@
  * THE SOFTWARE
  */
 
-package ch.threema.apitool;
+package ch.threema.apitool.console.commands;
 
-/**
- * Encapsulates the 8-byte message IDs that Threema uses.
- */
-public class MessageId {
+import ch.threema.apitool.console.commands.fields.PrivateKeyField;
+import ch.threema.apitool.CryptTool;
+import ch.threema.apitool.Key;
 
-	public static final int MESSAGE_ID_LEN = 8;
+public class DerivePublicKeyCommand extends Command {
+	private final PrivateKeyField privateKeyField;
 
-	private final byte[] messageId;
+	public DerivePublicKeyCommand() {
+		super("Derive Public Key",
+				"Derive the public key that corresponds with the given private key.");
 
-	public MessageId(byte[] messageId) {
-		if (messageId.length != MESSAGE_ID_LEN)
-			throw new IllegalArgumentException("Bad message ID length");
-
-		this.messageId = messageId;
-	}
-
-	public MessageId(byte[] data, int offset) {
-		if ((offset + MESSAGE_ID_LEN) > data.length)
-			throw new IllegalArgumentException("Bad message ID buffer length");
-
-		this.messageId = new byte[MESSAGE_ID_LEN];
-		System.arraycopy(data, offset, this.messageId, 0, MESSAGE_ID_LEN);
-	}
-
-	public byte[] getMessageId() {
-		return messageId;
+		this.privateKeyField = this.createPrivateKeyField("privateKey");
 	}
 
 	@Override
-	public String toString() {
-		return DataUtils.byteArrayToHexString(messageId);
+	protected void execute() throws Exception {
+		byte[] privateKey = this.privateKeyField.getValue();
+		byte[] publicKey = CryptTool.derivePublicKey(privateKey);
+
+		System.out.println("res");
+		System.out.println(new Key(Key.KeyType.PUBLIC, publicKey).encode());
 	}
 }

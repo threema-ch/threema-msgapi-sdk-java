@@ -1,11 +1,11 @@
 # msgapi-sdk-java
-Version: 1.0.2
+Version: 1.1.0
 
 ## Console client usage
 ###Local operations (no network communication)
 ####Encrypt
 	java -jar threema-msgapi-tool.jar -e <privateKey> <publicKey>
-Encrypt standard input using the given sender private key and recipient public key. two lines to standard output: first the nonce (hex), and then the box (hex).
+Encrypt standard input using the given sender private key and recipient public key. Prints two lines to standard output: first the nonce (hex), and then the box (hex).
 
 ####Decrypt
 	java -jar threema-msgapi-tool.jar -d <privateKey> <publicKey> <nonce>
@@ -30,7 +30,7 @@ Derive the public key that corresponds with the given private key.
 ###Network operations
 ####Send Simple Message
 	java -jar threema-msgapi-tool.jar -s <to> <from> <secret>
-Send a message from standard input with server-side encryption to the given ID. is the API identity and 'secret' is the API secret. the message ID on success.
+Send a message from standard input with server-side encryption to the given ID. 'from' is the API identity and 'secret' is the API secret. Prints the message ID on success.
 
 ####Send End-to-End Encrypted Message
 	java -jar threema-msgapi-tool.jar -S <to> <from> <secret> <privateKey> <publicKey>

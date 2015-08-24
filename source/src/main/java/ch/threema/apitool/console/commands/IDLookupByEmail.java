@@ -22,38 +22,36 @@
  * THE SOFTWARE
  */
 
-package ch.threema.apitool;
+package ch.threema.apitool.console.commands;
 
-/**
- * Encapsulates the 8-byte message IDs that Threema uses.
- */
-public class MessageId {
+import ch.threema.apitool.APIConnector;
+import ch.threema.apitool.console.commands.fields.TextField;
+import ch.threema.apitool.console.commands.fields.ThreemaIDField;
 
-	public static final int MESSAGE_ID_LEN = 8;
+public class IDLookupByEmail extends Command {
+	private final TextField emailField;
+	private final ThreemaIDField fromField;
+	private final TextField secretField;
 
-	private final byte[] messageId;
+	public IDLookupByEmail() {
+		super("ID Lookup By Email Address",
+				"Lookup the ID linked to the given email address (will be hashed locally).");
 
-	public MessageId(byte[] messageId) {
-		if (messageId.length != MESSAGE_ID_LEN)
-			throw new IllegalArgumentException("Bad message ID length");
-
-		this.messageId = messageId;
-	}
-
-	public MessageId(byte[] data, int offset) {
-		if ((offset + MESSAGE_ID_LEN) > data.length)
-			throw new IllegalArgumentException("Bad message ID buffer length");
-
-		this.messageId = new byte[MESSAGE_ID_LEN];
-		System.arraycopy(data, offset, this.messageId, 0, MESSAGE_ID_LEN);
-	}
-
-	public byte[] getMessageId() {
-		return messageId;
+		this.emailField = this.createTextField("email");
+		this.fromField = this.createThreemaId("from");
+		this.secretField = this.createTextField("secret");
 	}
 
 	@Override
-	public String toString() {
-		return DataUtils.byteArrayToHexString(messageId);
+	protected void execute() throws Exception {
+		String email = this.emailField.getValue();
+		String from = this.fromField.getValue();
+		String secret = this.secretField.getValue();
+
+		APIConnector apiConnector = this.createConnector(from, secret);
+		String id = apiConnector.lookupEmail(email);
+		if (id != null) {
+			System.out.println(id);
+		}
 	}
 }

@@ -22,38 +22,28 @@
  * THE SOFTWARE
  */
 
-package ch.threema.apitool;
+package ch.threema.apitool.console.commands.fields;
 
-/**
- * Encapsulates the 8-byte message IDs that Threema uses.
- */
-public class MessageId {
+import java.io.File;
 
-	public static final int MESSAGE_ID_LEN = 8;
+public class FileField extends Field {
 
-	private final byte[] messageId;
-
-	public MessageId(byte[] messageId) {
-		if (messageId.length != MESSAGE_ID_LEN)
-			throw new IllegalArgumentException("Bad message ID length");
-
-		this.messageId = messageId;
+	public FileField(String key, boolean required) {
+		super(key, required);
 	}
 
-	public MessageId(byte[] data, int offset) {
-		if ((offset + MESSAGE_ID_LEN) > data.length)
-			throw new IllegalArgumentException("Bad message ID buffer length");
+	public File getValue() {
+		if(this.value != null) {
+			return new File(this.value);
+		}
 
-		this.messageId = new byte[MESSAGE_ID_LEN];
-		System.arraycopy(data, offset, this.messageId, 0, MESSAGE_ID_LEN);
-	}
-
-	public byte[] getMessageId() {
-		return messageId;
+		return null;
 	}
 
 	@Override
-	public String toString() {
-		return DataUtils.byteArrayToHexString(messageId);
+	protected boolean validate() {
+		return !this.isRequired()
+			|| (this.value != null
+				&& new File(this.value).isFile());
 	}
 }

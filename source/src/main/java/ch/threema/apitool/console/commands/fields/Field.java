@@ -22,38 +22,48 @@
  * THE SOFTWARE
  */
 
-package ch.threema.apitool;
+package ch.threema.apitool.console.commands.fields;
 
-/**
- * Encapsulates the 8-byte message IDs that Threema uses.
- */
-public class MessageId {
+import ch.threema.apitool.exceptions.InvalidCommandFieldValueException;
+import ch.threema.apitool.exceptions.RequiredCommandFieldMissingException;
 
-	public static final int MESSAGE_ID_LEN = 8;
+public abstract class Field {
 
-	private final byte[] messageId;
+	private final String key;
+	private final boolean required;
+	protected String value;
 
-	public MessageId(byte[] messageId) {
-		if (messageId.length != MESSAGE_ID_LEN)
-			throw new IllegalArgumentException("Bad message ID length");
-
-		this.messageId = messageId;
+	protected Field(String key, boolean required) {
+		this.key = key;
+		this.required = required;
 	}
 
-	public MessageId(byte[] data, int offset) {
-		if ((offset + MESSAGE_ID_LEN) > data.length)
-			throw new IllegalArgumentException("Bad message ID buffer length");
-
-		this.messageId = new byte[MESSAGE_ID_LEN];
-		System.arraycopy(data, offset, this.messageId, 0, MESSAGE_ID_LEN);
+	public void setValue(String value) {
+		this.value = value;
 	}
 
-	public byte[] getMessageId() {
-		return messageId;
+	public boolean isRequired() {
+		return this.required;
 	}
 
-	@Override
-	public String toString() {
-		return DataUtils.byteArrayToHexString(messageId);
+	public String getKey() {
+		return this.key;
 	}
+
+	public boolean isValid() throws RequiredCommandFieldMissingException, InvalidCommandFieldValueException {
+		if(this.isRequired() && this.value == null) {
+			throw new RequiredCommandFieldMissingException("required field " + this.key + " not set");
+		}
+
+		if(!this.validate()) {
+			throw new InvalidCommandFieldValueException("field " + this.key + " value invalid");
+		}
+
+		return true;
+	}
+
+	protected boolean validate() {
+		return true;
+	}
+
 }

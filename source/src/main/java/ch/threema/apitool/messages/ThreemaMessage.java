@@ -22,38 +22,24 @@
  * THE SOFTWARE
  */
 
-package ch.threema.apitool;
+package ch.threema.apitool.messages;
+
+import ch.threema.apitool.exceptions.BadMessageException;
 
 /**
- * Encapsulates the 8-byte message IDs that Threema uses.
+ * Abstract base class of messages that can be sent with end-to-end encryption via Threema.
  */
-public class MessageId {
+public abstract class ThreemaMessage {
 
-	public static final int MESSAGE_ID_LEN = 8;
+	public static final int BLOB_ID_LEN = 16;
 
-	private final byte[] messageId;
+	/**
+	 * @return The message's raw content
+	 */
+	public abstract byte[] getData() throws BadMessageException;
 
-	public MessageId(byte[] messageId) {
-		if (messageId.length != MESSAGE_ID_LEN)
-			throw new IllegalArgumentException("Bad message ID length");
-
-		this.messageId = messageId;
-	}
-
-	public MessageId(byte[] data, int offset) {
-		if ((offset + MESSAGE_ID_LEN) > data.length)
-			throw new IllegalArgumentException("Bad message ID buffer length");
-
-		this.messageId = new byte[MESSAGE_ID_LEN];
-		System.arraycopy(data, offset, this.messageId, 0, MESSAGE_ID_LEN);
-	}
-
-	public byte[] getMessageId() {
-		return messageId;
-	}
-
-	@Override
-	public String toString() {
-		return DataUtils.byteArrayToHexString(messageId);
-	}
+	/**
+	 * @return the message's type code
+	 */
+	public abstract int getTypeCode();
 }

@@ -22,7 +22,9 @@
  * THE SOFTWARE
  */
 
-package ch.threema.apitool;
+package ch.threema.apitool.messages;
+
+import ch.threema.apitool.MessageId;
 
 import java.util.List;
 
@@ -32,7 +34,7 @@ import java.util.List;
  */
 public class DeliveryReceipt extends ThreemaMessage {
 
-	protected static final int TYPE_CODE = 0x80;
+	public static final int TYPE_CODE = 0x80;
 
 	private final Type receiptType;
 	private final List<MessageId> ackedMessageIds;
@@ -51,7 +53,7 @@ public class DeliveryReceipt extends ThreemaMessage {
 	}
 
 	@Override
-	protected int getTypeCode() {
+	public int getTypeCode() {
 		return TYPE_CODE;
 	}
 
@@ -86,7 +88,7 @@ public class DeliveryReceipt extends ThreemaMessage {
 
 		private final int code;
 
-		private Type(int code) {
+		Type(int code) {
 			this.code = code;
 		}
 
@@ -101,5 +103,11 @@ public class DeliveryReceipt extends ThreemaMessage {
 			}
 			return null;
 		}
+	}
+
+	@Override
+	public byte[] getData() {
+		//Not implemented yet
+		return new byte[0];
 	}
 }

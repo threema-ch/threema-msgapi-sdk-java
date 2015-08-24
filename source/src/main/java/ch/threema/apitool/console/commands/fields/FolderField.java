@@ -21,32 +21,18 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE
  */
-package ch.threema.apitool;
 
-/**
- * A text message that can be sent/received with end-to-end encryption via Threema.
- */
-public class TextMessage extends ThreemaMessage {
+package ch.threema.apitool.console.commands.fields;
 
-	protected static final int TYPE_CODE = 0x01;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 
-	private final String text;
-
-	public TextMessage(String text) {
-		this.text = text;
+public class FolderField extends Field {
+	public FolderField(String key, boolean required) {
+		super(key, required);
 	}
 
-	public String getText() {
-		return text;
-	}
-
-	@Override
-	protected int getTypeCode() {
-		return TYPE_CODE;
-	}
-
-	@Override
-	public String toString() {
-		return text;
+	public Path getValue() {
+		return Paths.get(this.value);
 	}
 }

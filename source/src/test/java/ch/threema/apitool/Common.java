@@ -25,7 +25,7 @@
 package ch.threema.apitool;
 
 /**
- * Created by se on 17.03.15.
+ * Common Stuff
  */
 public abstract class Common {
 

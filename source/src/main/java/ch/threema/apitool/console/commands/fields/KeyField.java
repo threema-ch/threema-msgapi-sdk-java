@@ -22,38 +22,32 @@
  * THE SOFTWARE
  */
 
-package ch.threema.apitool;
+package ch.threema.apitool.console.commands.fields;
 
-/**
- * Encapsulates the 8-byte message IDs that Threema uses.
- */
-public class MessageId {
+import ch.threema.apitool.DataUtils;
+import ch.threema.apitool.Key;
+import ch.threema.apitool.exceptions.InvalidKeyException;
 
-	public static final int MESSAGE_ID_LEN = 8;
+import java.io.File;
+import java.io.IOException;
 
-	private final byte[] messageId;
-
-	public MessageId(byte[] messageId) {
-		if (messageId.length != MESSAGE_ID_LEN)
-			throw new IllegalArgumentException("Bad message ID length");
-
-		this.messageId = messageId;
+public abstract class KeyField extends Field {
+	public KeyField(String key, boolean required) {
+		super(key, required);
 	}
 
-	public MessageId(byte[] data, int offset) {
-		if ((offset + MESSAGE_ID_LEN) > data.length)
-			throw new IllegalArgumentException("Bad message ID buffer length");
 
-		this.messageId = new byte[MESSAGE_ID_LEN];
-		System.arraycopy(data, offset, this.messageId, 0, MESSAGE_ID_LEN);
-	}
+	byte[] readKey(String argument, String expectedKeyType) throws IOException, InvalidKeyException {
+		Key key;
 
-	public byte[] getMessageId() {
-		return messageId;
-	}
+		// Try to open a file with that name
+		File keyFile = new File(argument);
+		if (keyFile.isFile()) {
+			key = DataUtils.readKeyFile(keyFile, expectedKeyType);
+		} else {
+			key = Key.decodeKey(argument, expectedKeyType);
+		}
 
-	@Override
-	public String toString() {
-		return DataUtils.byteArrayToHexString(messageId);
+		return key.key;
 	}
 }

@@ -22,38 +22,47 @@
  * THE SOFTWARE
  */
 
-package ch.threema.apitool;
+package ch.threema.apitool.results;
 
 /**
- * Encapsulates the 8-byte message IDs that Threema uses.
+ * Result of a data encryption
  */
-public class MessageId {
+public class EncryptResult {
+	private final byte[] result;
+	private final byte[] secret;
+	private final byte[] nonce;
 
-	public static final int MESSAGE_ID_LEN = 8;
-
-	private final byte[] messageId;
-
-	public MessageId(byte[] messageId) {
-		if (messageId.length != MESSAGE_ID_LEN)
-			throw new IllegalArgumentException("Bad message ID length");
-
-		this.messageId = messageId;
+	public EncryptResult(byte[] result, byte[] secret, byte[] nonce) {
+		this.result = result;
+		this.secret = secret;
+		this.nonce = nonce;
 	}
 
-	public MessageId(byte[] data, int offset) {
-		if ((offset + MESSAGE_ID_LEN) > data.length)
-			throw new IllegalArgumentException("Bad message ID buffer length");
-
-		this.messageId = new byte[MESSAGE_ID_LEN];
-		System.arraycopy(data, offset, this.messageId, 0, MESSAGE_ID_LEN);
+	/**
+	 * @return the encrypted data
+	 */
+	public byte[] getResult() {
+		return this.result;
 	}
 
-	public byte[] getMessageId() {
-		return messageId;
+	/**
+	 * @return the size (in bytes) of the encrypted data
+	 */
+	public int getSize() {
+		return this.result.length;
 	}
 
-	@Override
-	public String toString() {
-		return DataUtils.byteArrayToHexString(messageId);
+	/**
+	 * @return the nonce that was used for encryption
+	 */
+	public byte[] getNonce() {
+		return this.nonce;
+	}
+
+	/**
+	 * @return the secret that was used for encryption (only for symmetric encryption, e.g. files)
+	 */
+	public byte[] getSecret() {
+		return secret;
 	}
 }

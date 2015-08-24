@@ -24,12 +24,19 @@
 
 package ch.threema.apitool;
 
-import ch.threema.apitool.exceptions.*;
+import ch.threema.apitool.exceptions.BadMessageException;
+import ch.threema.apitool.exceptions.DecryptionFailedException;
+import ch.threema.apitool.exceptions.MessageParseException;
+import ch.threema.apitool.exceptions.UnsupportedMessageTypeException;
+import ch.threema.apitool.messages.*;
+import ch.threema.apitool.results.EncryptResult;
+import ch.threema.apitool.results.UploadResult;
 import com.neilalexander.jnacl.NaCl;
+import org.apache.commons.io.EndianUtils;
 
 import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
-import java.io.*;
+import java.io.UnsupportedEncodingException;
 import java.security.SecureRandom;
 import java.util.LinkedList;
 import java.util.List;
@@ -43,6 +50,9 @@ public class CryptTool {
 	private static final byte[] EMAIL_HMAC_KEY = new byte[] {(byte)0x30,(byte)0xa5,(byte)0x50,(byte)0x0f,(byte)0xed,(byte)0x97,(byte)0x01,(byte)0xfa,(byte)0x6d,(byte)0xef,(byte)0xdb,(byte)0x61,(byte)0x08,(byte)0x41,(byte)0x90,(byte)0x0f,(byte)0xeb,(byte)0xb8,(byte)0xe4,(byte)0x30,(byte)0x88,(byte)0x1f,(byte)0x7a,(byte)0xd8,(byte)0x16,(byte)0x82,(byte)0x62,(byte)0x64,(byte)0xec,(byte)0x09,(byte)0xba,(byte)0xd7};
 	private static final byte[] PHONENO_HMAC_KEY = new byte[] {(byte)0x85,(byte)0xad,(byte)0xf8,(byte)0x22,(byte)0x69,(byte)0x53,(byte)0xf3,(byte)0xd9,(byte)0x6c,(byte)0xfd,(byte)0x5d,(byte)0x09,(byte)0xbf,(byte)0x29,(byte)0x55,(byte)0x5e,(byte)0xb9,(byte)0x55,(byte)0xfc,(byte)0xd8,(byte)0xaa,(byte)0x5e,(byte)0xc4,(byte)0xf9,(byte)0xfc,(byte)0xd8,(byte)0x69,(byte)0xe2,(byte)0x58,(byte)0x37,(byte)0x07,(byte)0x23};
 
+	private static final byte[] FILE_NONCE = new byte[]{0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x01};
+	private static final byte[] FILE_THUMBNAIL_NONCE = new byte[]{0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x02};
+
 	private static final SecureRandom random = new SecureRandom();
 
 	/**
@@ -51,34 +61,121 @@ public class CryptTool {
 	 * @param text the text to be encrypted (max. 3500 bytes)
 	 * @param senderPrivateKey the private key of the sending ID
 	 * @param recipientPublicKey the public key of the receiving ID
-	 * @param nonce the nonce to be used for the encryption (usually 24 random bytes)
-	 * @return encrypted box
+	 * @return encrypted result
 	 */
-	public static byte[] encryptTextMessage(String text, byte[] senderPrivateKey, byte[] recipientPublicKey, byte[] nonce) {
+	public static EncryptResult encryptTextMessage(String text, byte[] senderPrivateKey, byte[] recipientPublicKey) {
+		return encryptMessage(new TextMessage(text), senderPrivateKey, recipientPublicKey);
+	}
 
-		/* prepend type byte (0x01) to message data */
-		byte[] textBytes;
-		try {
-			textBytes = text.getBytes("UTF-8");
-		} catch (UnsupportedEncodingException e) {
-			/* should never happen, UTF-8 is always supported */
-			throw new RuntimeException(e);
-		}
 
+	/**
+	 * Encrypt an image message.
+	 *
+	 * @param encryptResult result of the image encryption
+	 * @param uploadResult result of the upload
+	 * @param senderPrivateKey the private key of the sending ID
+	 * @param recipientPublicKey the public key of the receiving ID
+	 * @return encrypted result
+	 */
+	public static EncryptResult encryptImageMessage(EncryptResult encryptResult, UploadResult uploadResult, byte[] senderPrivateKey, byte[] recipientPublicKey) {
+		return encryptMessage(
+				new ImageMessage(uploadResult.getBlobId(),
+					encryptResult.getSize(),
+					encryptResult.getNonce()),
+				senderPrivateKey,
+				recipientPublicKey);
+	}
+
+	/**
+	 * Encrypt a file message.
+	 *
+	 * @param encryptResult result of the file data encryption
+	 * @param uploadResult result of the upload
+	 * @param mimeType MIME type of the file
+	 * @param fileName File name
+	 * @param fileSize Size of the file, in bytes
+	 * @param uploadResultThumbnail result of thumbnail upload
+	 * @param senderPrivateKey Private key of sender
+	 * @param recipientPublicKey Public key of recipient
+	 * @return Result of the file message encryption (not the same as the file data encryption!)
+	 */
+	public static EncryptResult encryptFileMessage(EncryptResult encryptResult,
+	                                               UploadResult uploadResult,
+	                                               String mimeType,
+	                                               String fileName,
+	                                               int fileSize,
+	                                               UploadResult uploadResultThumbnail,
+	                                               byte[] senderPrivateKey, byte[] recipientPublicKey) {
+		return encryptMessage(
+				new FileMessage(uploadResult.getBlobId(),
+						encryptResult.getSecret(),
+						mimeType,
+						fileName,
+						fileSize,
+						uploadResultThumbnail != null ? uploadResultThumbnail.getBlobId() : null),
+				senderPrivateKey,
+				recipientPublicKey);
+	}
+
+
+	private static EncryptResult encryptMessage(ThreemaMessage threemaMessage, byte[] privateKey, byte[] publicKey) {
 		/* determine random amount of PKCS7 padding */
 		int padbytes = random.nextInt(254) + 1;
 
-		byte[] data = new byte[textBytes.length + 1 + padbytes];
-		data[0] = 1;
-		System.arraycopy(textBytes, 0, data, 1, textBytes.length);
+		byte[] messageBytes;
+		try {
+			messageBytes = threemaMessage.getData();
+		} catch (BadMessageException e) {
+			return null;
+		}
+
+		/* prepend type byte (0x02) to message data */
+		byte[] data = new byte[1 + messageBytes.length + padbytes];
+		data[0] = (byte)threemaMessage.getTypeCode();
+
+		System.arraycopy(messageBytes, 0, data, 1, messageBytes.length);
 
 		/* append padding */
 		for (int i = 0; i < padbytes; i++) {
-			data[i + textBytes.length + 1] = (byte)padbytes;
+			data[i + 1 + messageBytes.length] = (byte)padbytes;
 		}
 
-		NaCl nacl = new NaCl(senderPrivateKey, recipientPublicKey);
-		return nacl.encrypt(data, nonce);
+		return encrypt(data, privateKey, publicKey);
+	}
+
+	/**
+	 * Decrypt an NaCl box using the recipient's private key and the sender's public key.
+	 *
+	 * @param box The box to be decrypted
+	 * @param privateKey The private key of the recipient
+	 * @param publicKey The public key of the sender
+	 * @param nonce The nonce that was used for encryption
+	 * @return The decrypted data, or null if decryption failed
+	 */
+	public static byte[] decrypt(byte[] box, byte[] privateKey, byte[] publicKey, byte[] nonce) {
+		return new NaCl(privateKey, publicKey).decrypt(box, nonce);
+	}
+
+	/**
+	 * Decrypt symmetrically encrypted file data.
+	 *
+	 * @param fileData The encrypted file data
+	 * @param secret The symmetric key that was used for encryption
+	 * @return The decrypted file data, or null if decryption failed
+	 */
+	public static byte[] decryptFileData(byte[] fileData, byte[] secret) {
+		return NaCl.symmetricDecryptData(fileData, secret, FILE_NONCE);
+	}
+
+	/**
+	 * Decrypt symmetrically encrypted file thumbnail data.
+	 *
+	 * @param fileData The encrypted thumbnail data
+	 * @param secret The symmetric key that was used for encryption
+	 * @return The decrypted thumbnail data, or null if decryption failed
+	 */
+	public static byte[] decryptFileThumbnailData(byte[] fileData, byte[] secret) {
+		return NaCl.symmetricDecryptData(fileData, secret, FILE_THUMBNAIL_NONCE);
 	}
 
 	/**
@@ -92,9 +189,7 @@ public class CryptTool {
 	 */
 	public static ThreemaMessage decryptMessage(byte[] box,  byte[] recipientPrivateKey, byte[] senderPublicKey, byte[] nonce) throws MessageParseException {
 
-		NaCl nacl = new NaCl(recipientPrivateKey, senderPublicKey);
-
-		byte[] data = nacl.decrypt(box, nonce);
+		byte[] data = decrypt(box, recipientPrivateKey, senderPublicKey, nonce);
 		if (data == null)
 			throw new DecryptionFailedException();
 
@@ -119,6 +214,7 @@ public class CryptTool {
 					/* should never happen, UTF-8 is always supported */
 					throw new RuntimeException(e);
 				}
+
 			case DeliveryReceipt.TYPE_CODE:
 				/* Delivery receipt */
 				if (realDataLength < MessageId.MESSAGE_ID_LEN + 2 || ((realDataLength - 2) % MessageId.MESSAGE_ID_LEN) != 0)
@@ -136,6 +232,28 @@ public class CryptTool {
 				}
 
 				return new DeliveryReceipt(receiptType, messageIds);
+
+			case ImageMessage.TYPE_CODE:
+				if(realDataLength != (1 + ThreemaMessage.BLOB_ID_LEN + 4 + NaCl.NONCEBYTES)) {
+					System.out.println(String.valueOf(realDataLength));
+					System.out.println(String.valueOf(1 + ThreemaMessage.BLOB_ID_LEN + 4 + NaCl.NONCEBYTES));
+					throw new BadMessageException();
+				}
+				byte[] blobId = new byte[ThreemaMessage.BLOB_ID_LEN];
+				System.arraycopy(data, 1, blobId, 0, ThreemaMessage.BLOB_ID_LEN);
+				int size = EndianUtils.readSwappedInteger(data, 1 + ThreemaMessage.BLOB_ID_LEN);
+				byte[] fileNonce = new byte[NaCl.NONCEBYTES];
+				System.arraycopy(data, 1 + 4 + ThreemaMessage.BLOB_ID_LEN, nonce, 0, nonce.length);
+
+				return new ImageMessage(blobId, size, fileNonce);
+
+			case FileMessage.TYPE_CODE:
+				try {
+					return FileMessage.fromString(new String(data, 1, realDataLength-1, "UTF-8"));
+				} catch (UnsupportedEncodingException e) {
+					throw new BadMessageException();
+				}
+
 			default:
 				throw new UnsupportedMessageTypeException();
 		}
@@ -148,10 +266,59 @@ public class CryptTool {
 	 * @param publicKey is used to return the generated public key (length must be NaCl.PUBLICKEYBYTES)
 	 */
 	public static void generateKeyPair(byte[] privateKey, byte[] publicKey) {
-		if (publicKey.length != NaCl.PUBLICKEYBYTES || privateKey.length != NaCl.SECRETKEYBYTES)
+		if (publicKey.length != NaCl.PUBLICKEYBYTES || privateKey.length != NaCl.SECRETKEYBYTES) {
 			throw new IllegalArgumentException("Wrong key length");
+		}
 
 		NaCl.genkeypair(publicKey, privateKey);
+	}
+
+	/**
+	 * Encrypt data using NaCl asymmetric ("box") encryption.
+	 *
+	 * @param data the data to be encrypted
+	 * @param privateKey is used to return the generated private key (length must be NaCl.PRIVATEKEYBYTES)
+	 * @param publicKey is used to return the generated public key (length must be NaCl.PUBLICKEYBYTES)
+	 */
+	public static EncryptResult encrypt(byte[] data,byte[] privateKey, byte[] publicKey) {
+		if (publicKey.length != NaCl.PUBLICKEYBYTES || privateKey.length != NaCl.SECRETKEYBYTES) {
+			throw new IllegalArgumentException("Wrong key length");
+		}
+
+		byte[] nonce = randomNonce();
+		NaCl naCl = new NaCl(privateKey, publicKey);
+		return new EncryptResult(naCl.encrypt(data, nonce), null, nonce);
+	}
+
+	/**
+	 * Encrypt file data using NaCl symmetric encryption with a random key.
+	 *
+	 * @param data the file contents to be encrypted
+	 * @return the encryption result including the random key
+	 */
+	public static EncryptResult encryptFileData(byte[] data) {
+		//create random key
+		SecureRandom rnd = new SecureRandom();
+		byte[] encryptionKey = new byte[NaCl.SYMMKEYBYTES];
+		rnd.nextBytes(encryptionKey);
+
+		//encrypt file data in-place
+		NaCl.symmetricEncryptDataInplace(data, encryptionKey, FILE_NONCE);
+
+		return new EncryptResult(data, encryptionKey, FILE_NONCE);
+	}
+
+	/**
+	 * Encrypt file thumbnail data using NaCl symmetric encryption with a random key.
+	 *
+	 * @param data the file contents to be encrypted
+	 * @return the encryption result including the random key
+	 */
+	public static EncryptResult encryptFileThumbnailData(byte[] data, byte[] encryptionKey) {
+		// encrypt file data in-place
+		NaCl.symmetricEncryptDataInplace(data, encryptionKey, FILE_THUMBNAIL_NONCE);
+
+		return new EncryptResult(data, encryptionKey, FILE_THUMBNAIL_NONCE);
 	}
 
 	/**
@@ -202,9 +369,10 @@ public class CryptTool {
 	}
 
 	/**
-	 * Return the public key of a private key
-	 * @param privateKey
-	 * @return
+	 * Return the public key that corresponds with a given private key.
+	 *
+	 * @param privateKey The private key whose public key should be derived
+	 * @return The corresponding public key.
 	 */
 	public static byte[] derivePublicKey(byte[] privateKey) {
 		return NaCl.derivePublicKey(privateKey);

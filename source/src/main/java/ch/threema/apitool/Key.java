@@ -26,6 +26,9 @@ package ch.threema.apitool;
 
 import ch.threema.apitool.exceptions.InvalidKeyException;
 
+/**
+ * Encapsulates an asymmetric key, either public or private.
+ */
 public class Key {
     public static final String separator = ":";
 

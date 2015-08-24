@@ -22,38 +22,36 @@
  * THE SOFTWARE
  */
 
-package ch.threema.apitool;
+package ch.threema.apitool.console.commands;
 
-/**
- * Encapsulates the 8-byte message IDs that Threema uses.
- */
-public class MessageId {
+import ch.threema.apitool.console.commands.fields.TextField;
+import ch.threema.apitool.CryptTool;
+import ch.threema.apitool.DataUtils;
+import ch.threema.apitool.Key;
+import com.neilalexander.jnacl.NaCl;
 
-	public static final int MESSAGE_ID_LEN = 8;
+import java.io.File;
 
-	private final byte[] messageId;
+public class GenerateKeyPairCommand extends Command {
+	private final TextField privateKeyPath;
+	private final TextField publicKeyPath;
 
-	public MessageId(byte[] messageId) {
-		if (messageId.length != MESSAGE_ID_LEN)
-			throw new IllegalArgumentException("Bad message ID length");
-
-		this.messageId = messageId;
-	}
-
-	public MessageId(byte[] data, int offset) {
-		if ((offset + MESSAGE_ID_LEN) > data.length)
-			throw new IllegalArgumentException("Bad message ID buffer length");
-
-		this.messageId = new byte[MESSAGE_ID_LEN];
-		System.arraycopy(data, offset, this.messageId, 0, MESSAGE_ID_LEN);
-	}
-
-	public byte[] getMessageId() {
-		return messageId;
+	public GenerateKeyPairCommand() {
+		super("Generate Key Pair",
+				"Generate a new key pair and write the private and public keys to the respective files (in hex).");
+		this.privateKeyPath = this.createTextField("privateKeyFile");
+		this.publicKeyPath = this.createTextField("publicKeyPath");
 	}
 
 	@Override
-	public String toString() {
-		return DataUtils.byteArrayToHexString(messageId);
+	protected void execute() throws Exception {
+		byte[] privateKey = new byte[NaCl.SECRETKEYBYTES];
+		byte[] publicKey = new byte[NaCl.PUBLICKEYBYTES];
+
+		CryptTool.generateKeyPair(privateKey, publicKey);
+
+		// Write both keys to file
+		DataUtils.writeKeyFile(new File(this.privateKeyPath.getValue()), new Key(Key.KeyType.PRIVATE, privateKey));
+		DataUtils.writeKeyFile(new File(this.publicKeyPath.getValue()), new Key(Key.KeyType.PUBLIC, publicKey));
 	}
 }

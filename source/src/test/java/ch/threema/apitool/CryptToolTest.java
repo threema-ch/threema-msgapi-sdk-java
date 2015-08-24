@@ -24,6 +24,9 @@
 
 package ch.threema.apitool;
 
+import ch.threema.apitool.messages.TextMessage;
+import ch.threema.apitool.messages.ThreemaMessage;
+import ch.threema.apitool.results.EncryptResult;
 import com.neilalexander.jnacl.NaCl;
 import org.junit.Test;
 
@@ -33,7 +36,7 @@ public class CryptToolTest {
 	public void testRandomNonce() throws Exception {
 		byte[] randomNonce = CryptTool.randomNonce();
 
-		//random nonce sould be a byte array
+		//random nonce should be a byte array
 		Assert.assertNotNull("random nonce", randomNonce);
 
 		//with a length of 24
@@ -79,9 +82,12 @@ public class CryptToolTest {
 		Key privateKey = Key.decodeKey(Common.myPrivateKey);
 		Key publicKey = Key.decodeKey(Common.otherPublicKey);
 
-		byte[] box = CryptTool.encryptTextMessage(text, privateKey.key, publicKey.key, DataUtils.hexStringToByteArray(nonce));
-		Assert.assertNotNull(box);
-		Assert.assertFalse(Common.isEmpty(box));
+		EncryptResult res = CryptTool.encryptTextMessage(text, privateKey.key, publicKey.key);
+		Assert.assertNotNull(res);
+		Assert.assertNotNull(res.getNonce());
+		Assert.assertNotNull(res.getResult());
+		Assert.assertFalse(Common.isEmpty(res.getNonce()));
+		Assert.assertFalse(Common.isEmpty(res.getResult()));
 	}
 
 	@Test

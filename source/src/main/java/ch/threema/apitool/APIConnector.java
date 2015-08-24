@@ -24,10 +24,15 @@
 
 package ch.threema.apitool;
 
+import ch.threema.apitool.results.CapabilityResult;
+import ch.threema.apitool.results.EncryptResult;
+import ch.threema.apitool.results.UploadResult;
+
 import javax.net.ssl.HttpsURLConnection;
 import java.io.*;
 import java.net.URL;
 import java.net.URLEncoder;
+import java.security.SecureRandom;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -35,15 +40,42 @@ import java.util.Map;
  * Facilitates HTTPS communication with the Threema Message API.
  */
 public class APIConnector {
+	private static final int BUFFER_SIZE = 16384;
 
-	private static final String API_URL = "https://msgapi.threema.ch/";
+	public interface ProgressListener {
 
+		/**
+		 * Update the progress of an upload/download process.
+		 *
+		 * @param progress in percent (0..100)
+		 */
+		void updateProgress(int progress);
+	}
+
+	public class InputStreamLength {
+		public final InputStream inputStream;
+		public final int length;
+
+		public InputStreamLength(InputStream inputStream, int length) {
+			this.inputStream = inputStream;
+			this.length = length;
+		}
+	}
+
+	private final String apiUrl;
+	private final PublicKeyStore publicKeyStore;
 	private final String apiIdentity;
 	private final String secret;
 
-	public APIConnector(String apiIdentity, String secret) {
+	public APIConnector(String apiIdentity, String secret, PublicKeyStore publicKeyStore) {
+		this(apiIdentity, secret, "https://msgapi.threema.ch/", publicKeyStore);
+	}
+
+	public APIConnector(String apiIdentity, String secret, String apiUrl, PublicKeyStore publicKeyStore) {
 		this.apiIdentity = apiIdentity;
 		this.secret = secret;
+		this.apiUrl = apiUrl;
+		this.publicKeyStore = publicKeyStore;
 	}
 
 	/**
@@ -60,7 +92,7 @@ public class APIConnector {
 		postParams.put("to", to);
 		postParams.put("text", text);
 
-		return doPost(new URL(API_URL + "send_simple"), postParams);
+		return doPost(new URL(this.apiUrl + "send_simple"), postParams);
 	}
 
 	/**
@@ -72,14 +104,14 @@ public class APIConnector {
 	 * @return message ID
 	 * @throws IOException if a communication or server error occurs
 	 */
-	public String sendTextMessageEndToEnd(String to, byte[] nonce, byte[] box) throws IOException {
+	public String sendE2EMessage(String to, byte[] nonce, byte[] box) throws IOException {
 
 		Map<String,String> postParams = makePostParams();
 		postParams.put("to", to);
 		postParams.put("nonce", DataUtils.byteArrayToHexString(nonce));
 		postParams.put("box", DataUtils.byteArrayToHexString(box));
 
-		return doPost(new URL(API_URL + "send_e2e"), postParams);
+		return doPost(new URL(this.apiUrl + "send_e2e"), postParams);
 	}
 
 	/**
@@ -97,7 +129,7 @@ public class APIConnector {
 
 			byte[] phoneHash = CryptTool.hashPhoneNo(phoneNumber);
 
-			return doGet(new URL(API_URL + "lookup/phone_hash/" + DataUtils.byteArrayToHexString(phoneHash)), getParams);
+			return doGet(new URL(this.apiUrl + "lookup/phone_hash/" + DataUtils.byteArrayToHexString(phoneHash)), getParams);
 		} catch (FileNotFoundException e) {
 			return null;
 		}
@@ -118,7 +150,7 @@ public class APIConnector {
 
 			byte[] emailHash = CryptTool.hashEmail(email);
 
-			return doGet(new URL(API_URL + "lookup/email_hash/" + DataUtils.byteArrayToHexString(emailHash)), getParams);
+			return doGet(new URL(this.apiUrl + "lookup/email_hash/" + DataUtils.byteArrayToHexString(emailHash)), getParams);
 		} catch (FileNotFoundException e) {
 			return null;
 		}
@@ -132,16 +164,167 @@ public class APIConnector {
 	 * @throws IOException if a communication or server error occurs
 	 */
 	public byte[] lookupKey(String id) throws IOException {
-
-		try {
-			Map<String,String> getParams = makePostParams();
-			String pubkeyHex = doGet(new URL(API_URL + "pubkeys/" + id), getParams);
-			return DataUtils.hexStringToByteArray(pubkeyHex);
-		} catch (FileNotFoundException e) {
-			return null;
+		byte[] key = this.publicKeyStore.getPublicKey(id);
+		if(key == null) {
+			try {
+				Map<String, String> getParams = makePostParams();
+				String pubkeyHex = doGet(new URL(this.apiUrl + "pubkeys/" + id), getParams);
+				key = DataUtils.hexStringToByteArray(pubkeyHex);
+			} catch (FileNotFoundException e) {
+				return null;
+			}
 		}
+		return key;
 	}
 
+	/**
+	 * Lookup the capabilities of a ID
+	 *
+	 * @param threemaId The ID whose capabilities should be checked
+	 * @return The capabilities, or null if not found
+	 * @throws IOException
+	 */
+	public CapabilityResult lookupKeyCapability(String threemaId) throws IOException {
+		String res = doGet(new URL(this.apiUrl + "capabilities/" + threemaId),
+				makePostParams());
+		if(res != null) {
+			return new CapabilityResult(threemaId, res.split(","));
+		}
+		return null;
+	}
+
+	/**
+	 * Upload a file.
+	 *
+	 * @param fileEncryptionResult The result of the file encryption (i.e. encrypted file data)
+	 * @return the result of the upload
+	 * @throws IOException
+	 */
+	public UploadResult uploadFile(EncryptResult fileEncryptionResult) throws  IOException{
+
+		String attachmentName = "blob";
+		String attachmentFileName = "blob.file";
+		String crlf = "\r\n";
+		String twoHyphens = "--";
+
+		char[] chars = "-_1234567890abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ".toCharArray();
+		String boundary = "";
+		SecureRandom rand = new SecureRandom();
+		int count = rand.nextInt(11) + 30;
+		for (int i = 0; i < count; i++) {
+			boundary += chars[rand.nextInt(chars.length)];
+		}
+
+
+		String queryString = makeUrlEncoded(makePostParams());
+		URL url = new URL(this.apiUrl + "upload_blob?" + queryString);
+
+		HttpsURLConnection connection = (HttpsURLConnection)url.openConnection();
+		connection.setDoOutput(true);
+		connection.setDoInput(true);
+		connection.setUseCaches(false);
+
+		connection.setRequestMethod("POST");
+		connection.setRequestProperty("Connection", "Keep-Alive");
+		connection.setRequestProperty("Cache-Control", "no-cache");
+		connection.setRequestProperty("Content-Type", "multipart/form-data;boundary=" + boundary);
+
+		DataOutputStream request = new DataOutputStream(connection.getOutputStream());
+
+		request.writeBytes(twoHyphens + boundary + crlf);
+		request.writeBytes("Content-Disposition: form-data; name=\"" + attachmentName + "\";filename=\"" + attachmentFileName + "\"" + crlf);
+		request.writeBytes(crlf);
+		request.write(fileEncryptionResult.getResult());
+		request.writeBytes(crlf);
+		request.writeBytes(twoHyphens + boundary + twoHyphens + crlf);
+
+		String response = null;
+		int responseCode = connection.getResponseCode();
+
+		if(responseCode == 200) {
+			InputStream is = connection.getInputStream();
+			BufferedReader br = new BufferedReader(new InputStreamReader(is));
+			response = br.readLine();
+			br.close();
+		}
+
+		connection.disconnect();
+
+		return new UploadResult(responseCode, response != null ? DataUtils.hexStringToByteArray(response) : null);
+	}
+
+	/**
+	 * Download a file given its blob ID.
+	 *
+	 * @param blobId The blob ID of the file
+	 * @return Encrypted file data
+	 * @throws IOException
+	 */
+	public byte[] downloadFile(byte[] blobId) throws IOException {
+		return this.downloadFile(blobId, null);
+	}
+
+	/**
+	 * Download a file given its blob ID.
+	 *
+	 * @param blobId The blob ID of the file
+	 * @param progressListener An object that will receive progress information, or null
+	 * @return Encrypted file data
+	 * @throws IOException
+	 */
+	public byte[] downloadFile(byte[] blobId, ProgressListener progressListener) throws IOException {
+		String queryString = makeUrlEncoded(makePostParams());
+		URL blobUrl = new URL(String.format(this.apiUrl + "blobs/%s?%s",
+				DataUtils.byteArrayToHexString(blobId),
+				queryString));
+
+		HttpsURLConnection connection = (HttpsURLConnection)blobUrl.openConnection();
+		connection.setConnectTimeout(20*1000);
+		connection.setReadTimeout(20*1000);
+		connection.setDoOutput(false);
+
+		InputStream inputStream = connection.getInputStream();
+		int contentLength = connection.getContentLength();
+		InputStreamLength isl = new InputStreamLength(inputStream, contentLength);
+
+
+        /* Content length known? */
+		byte[] blob;
+		if (isl.length != -1) {
+			blob = new byte[isl.length];
+			int offset = 0;
+			int readed;
+
+			while (offset < isl.length && (readed = isl.inputStream.read(blob, offset, isl.length - offset)) != -1) {
+				offset += readed;
+
+				if (progressListener != null) {
+					progressListener.updateProgress(100 * offset / isl.length);
+				}
+			}
+
+			if (offset != isl.length) {
+				throw new IOException("Unexpected read size. current: " + offset + ", excepted: " + isl.length);
+			}
+		} else {
+            /* Content length is unknown - need to read until EOF */
+
+			ByteArrayOutputStream bos = new ByteArrayOutputStream();
+			byte[] buffer = new byte[BUFFER_SIZE];
+
+			int read;
+			while ((read = isl.inputStream.read(buffer)) != -1) {
+				bos.write(buffer, 0, read);
+			}
+
+			blob = bos.toByteArray();
+		}
+		if (progressListener != null) {
+			progressListener.updateProgress(100);
+		}
+
+		return blob;
+	}
 
 	private Map<String,String> makePostParams() {
 		Map<String,String> postParams = new HashMap<String,String>();
@@ -221,4 +404,5 @@ public class APIConnector {
 
 		return s.toString();
 	}
+
 }

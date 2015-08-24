@@ -24,6 +24,9 @@
 
 package ch.threema.apitool.exceptions;
 
+/**
+ * Exception that gets thrown when an invalid key has been specified (e.g. wrong length).
+ */
 public class InvalidKeyException extends Exception {
     public InvalidKeyException(String s) {
         super(s);
