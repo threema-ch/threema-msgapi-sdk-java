@@ -88,7 +88,7 @@ public class APIConnector {
 	 */
 	public String sendTextMessageSimple(String to, String text) throws IOException {
 
-		Map<String,String> postParams = makePostParams();
+		Map<String,String> postParams = makeRequestParams();
 		postParams.put("to", to);
 		postParams.put("text", text);
 
@@ -106,7 +106,7 @@ public class APIConnector {
 	 */
 	public String sendE2EMessage(String to, byte[] nonce, byte[] box) throws IOException {
 
-		Map<String,String> postParams = makePostParams();
+		Map<String,String> postParams = makeRequestParams();
 		postParams.put("to", to);
 		postParams.put("nonce", DataUtils.byteArrayToHexString(nonce));
 		postParams.put("box", DataUtils.byteArrayToHexString(box));
@@ -125,7 +125,7 @@ public class APIConnector {
 	public String lookupPhone(String phoneNumber) throws IOException {
 
 		try {
-			Map<String,String> getParams = makePostParams();
+			Map<String,String> getParams = makeRequestParams();
 
 			byte[] phoneHash = CryptTool.hashPhoneNo(phoneNumber);
 
@@ -146,7 +146,7 @@ public class APIConnector {
 	public String lookupEmail(String email) throws IOException {
 
 		try {
-			Map<String,String> getParams = makePostParams();
+			Map<String,String> getParams = makeRequestParams();
 
 			byte[] emailHash = CryptTool.hashEmail(email);
 
@@ -167,7 +167,7 @@ public class APIConnector {
 		byte[] key = this.publicKeyStore.getPublicKey(id);
 		if(key == null) {
 			try {
-				Map<String, String> getParams = makePostParams();
+				Map<String, String> getParams = makeRequestParams();
 				String pubkeyHex = doGet(new URL(this.apiUrl + "pubkeys/" + id), getParams);
 				key = DataUtils.hexStringToByteArray(pubkeyHex);
 			} catch (FileNotFoundException e) {
@@ -186,13 +186,21 @@ public class APIConnector {
 	 */
 	public CapabilityResult lookupKeyCapability(String threemaId) throws IOException {
 		String res = doGet(new URL(this.apiUrl + "capabilities/" + threemaId),
-				makePostParams());
+				makeRequestParams());
 		if(res != null) {
 			return new CapabilityResult(threemaId, res.split(","));
 		}
 		return null;
 	}
 
+	public Integer lookupCredits() throws IOException {
+		String res = doGet(new URL(this.apiUrl + "credits"),
+				makeRequestParams());
+		if(res != null) {
+			return Integer.valueOf(res);
+		}
+		return null;
+	}
 	/**
 	 * Upload a file.
 	 *
@@ -216,7 +224,7 @@ public class APIConnector {
 		}
 
 
-		String queryString = makeUrlEncoded(makePostParams());
+		String queryString = makeUrlEncoded(makeRequestParams());
 		URL url = new URL(this.apiUrl + "upload_blob?" + queryString);
 
 		HttpsURLConnection connection = (HttpsURLConnection)url.openConnection();
@@ -273,7 +281,7 @@ public class APIConnector {
 	 * @throws IOException
 	 */
 	public byte[] downloadFile(byte[] blobId, ProgressListener progressListener) throws IOException {
-		String queryString = makeUrlEncoded(makePostParams());
+		String queryString = makeUrlEncoded(makeRequestParams());
 		URL blobUrl = new URL(String.format(this.apiUrl + "blobs/%s?%s",
 				DataUtils.byteArrayToHexString(blobId),
 				queryString));
@@ -326,7 +334,7 @@ public class APIConnector {
 		return blob;
 	}
 
-	private Map<String,String> makePostParams() {
+	private Map<String,String> makeRequestParams() {
 		Map<String,String> postParams = new HashMap<String,String>();
 
 		postParams.put("from", apiIdentity);

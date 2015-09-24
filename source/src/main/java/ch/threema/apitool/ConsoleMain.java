@@ -113,7 +113,7 @@ public class ConsoleMain {
 				throw new Exception("invalid arguments");
 			}
 
-			this.command.run((String[])ArrayUtils.subarray(givenArguments, this.arguments.length, givenArguments.length));
+			this.command.run((String[]) ArrayUtils.subarray(givenArguments, this.arguments.length, givenArguments.length));
 		}
 	}
 
@@ -138,7 +138,8 @@ public class ConsoleMain {
 				.add(new IDLookupByPhoneNo(), "-l", "-p")
 				.add(new FetchPublicKey(), "-l", "-k")
 				.add(new CapabilityCommand(), "-c")
-				.add(new DecryptAndDownloadCommand(), "-D");
+				.add(new DecryptAndDownloadCommand(), "-D")
+				.add(new CreditsCommand(), "-C");
 
 
 		ArgumentCommand argumentCommand = commands.find(args);
