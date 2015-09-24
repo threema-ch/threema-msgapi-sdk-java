@@ -15,10 +15,6 @@
     <version>1.1.2</version>
     <name>Threema MsgApi SDK</name>
 
-    <!-- Documentation on how to get this to maven central: -->
-    <!-- https://docs.sonatype.org/display/Repository/Sonatype+OSS+Maven+Repository+Usage+Guide#SonatypeOSSMavenRepositoryUsageGuide-7b.StageExistingArtifacts -->
-    <!-- http://central.sonatype.org/pages/ossrh-guide.html -->
-
     <issueManagement>
         <system>github issues</system>
         <url>https://github.com/threema-ch/threema-msgapi-sdk-java/issues</url>
@@ -31,17 +27,17 @@
     </properties>
 
     <scm>
-        <connection>scm:http://github.com/threema-ch/threema-msgapi-sdk-java.git</connection>
+        <connection>scm:https://github.com/threema-ch/threema-msgapi-sdk-java.git</connection>
         <developerConnection>scm:git:git@github.com:threema-ch/threema-msgapi-sdk-java.git</developerConnection>
-        <url>http://github.com/threema-ch/threema-msgapi-sdk-java</url>
+        <url>https://github.com/threema-ch/threema-msgapi-sdk-java</url>
     </scm>
 
     <organization>
         <name>Threema GmbH, Staldenbachstrasse 11, 8808 Pfäffikon SZ, Schweiz</name>
-        <url>http://www.threema.ch</url>
+        <url>https://www.threema.ch</url>
     </organization>
 
-    <url>https://gateway.threema.ch/de</url>
+    <url>https://gateway.threema.ch/</url>
 
     <licenses>
         <license>
