@@ -1,3 +1,12 @@
+**Dear visitor**
+
+**This repository is no longer maintained.**
+
+**To download the latest version of the Threema Getway SDK please go to:**
+
+https://gateway.threema.ch/en/developer/sdk-php
+
+
 # msgapi-sdk-java
 Version: 1.1.2
 
