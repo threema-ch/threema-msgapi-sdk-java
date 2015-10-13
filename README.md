@@ -4,7 +4,7 @@
 
 **To download the latest version of the Threema Getway SDK please go to:**
 
-https://gateway.threema.ch/en/developer/sdk-php
+https://gateway.threema.ch/en/developer/sdk-java
 
 
 # msgapi-sdk-java
