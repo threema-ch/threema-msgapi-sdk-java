@@ -6,6 +6,8 @@
 
 https://gateway.threema.ch/en/developer/sdk-java
 
+**A fork of this repository is maintained here: [https://github.com/simmac/threema-msgapi-sdk-java](https://github.com/simmac/threema-msgapi-sdk-java)**
+
 
 # msgapi-sdk-java
 Version: 1.1.2
