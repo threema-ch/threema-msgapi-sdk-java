@@ -55,9 +55,9 @@
             <scope>test</scope>
         </dependency>
         <dependency>
-            <groupId>org.apache.maven.plugins</groupId>
-            <artifactId>maven-javadoc-plugin</artifactId>
-            <version>2.8</version>
+            <groupId>commons-lang</groupId>
+            <artifactId>commons-lang</artifactId>
+            <version>2.6</version>
         </dependency>
         <dependency>
             <groupId>commons-io</groupId>
@@ -81,16 +81,12 @@
                 <configuration>
                     <source>8</source>
                     <target>8</target>
-                    <encoding>${source.encoding}</encoding>
                 </configuration>
             </plugin>
 
             <plugin>
                 <artifactId>maven-resources-plugin</artifactId>
                 <version>2.5</version>
-                <configuration>
-                    <encoding>${source.encoding}</encoding>
-                </configuration>
             </plugin>
 
             <plugin>
@@ -128,6 +124,11 @@
                         </configuration>
                     </execution>
                 </executions>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-javadoc-plugin</artifactId>
+                <version>2.8</version>
             </plugin>
         </plugins>
     </build>
