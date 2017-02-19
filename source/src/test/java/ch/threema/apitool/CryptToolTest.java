@@ -24,11 +24,20 @@
 
 package ch.threema.apitool;
 
+import static org.junit.Assert.assertArrayEquals;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertSame;
+import static org.junit.Assert.assertTrue;
+
+import org.junit.Test;
+
+import com.neilalexander.jnacl.NaCl;
+
 import ch.threema.apitool.messages.TextMessage;
 import ch.threema.apitool.messages.ThreemaMessage;
 import ch.threema.apitool.results.EncryptResult;
-import com.neilalexander.jnacl.NaCl;
-import org.junit.Test;
 
 public class CryptToolTest {
 
@@ -37,10 +46,10 @@ public class CryptToolTest {
 		byte[] randomNonce = CryptTool.randomNonce();
 
 		//random nonce should be a byte array
-		Assert.assertNotNull("random nonce", randomNonce);
+		assertNotNull("random nonce", randomNonce);
 
 		//with a length of 24
-		Assert.assertSame("nonce length", randomNonce.length, NaCl.NONCEBYTES);
+		assertSame("nonce length", randomNonce.length, NaCl.NONCEBYTES);
 	}
 
 	@Test
@@ -50,8 +59,8 @@ public class CryptToolTest {
 
 		CryptTool.generateKeyPair(privateKey, publicKey);
 
-		Assert.assertFalse("empty private key", Common.isEmpty(privateKey));
-		Assert.assertFalse("empty public key", Common.isEmpty(publicKey));
+		assertFalse("empty private key", Common.isEmpty(privateKey));
+		assertFalse("empty public key", Common.isEmpty(publicKey));
 	}
 
 	@Test
@@ -69,25 +78,24 @@ public class CryptToolTest {
 				DataUtils.hexStringToByteArray(nonce)
 		);
 
-		Assert.assertNotNull(message);
-		Assert.assertTrue("message is not a instance of text message", message instanceof TextMessage);
-		Assert.assertEquals(((TextMessage) message).getText(), "Dies ist eine Testnachricht. äöü");
+		assertNotNull(message);
+		assertTrue("message is not a instance of text message", message instanceof TextMessage);
+		assertEquals(((TextMessage) message).getText(), "Dies ist eine Testnachricht. äöü");
 	}
 
 	@Test
 	public void testEncrypt() throws Exception {
 		String text = "Dies ist eine Testnachricht. äöü";
-		String nonce = "0a1ec5b67b4d61a1ef91f55e8ce0471fee96ea5d8596dfd0";
 
 		Key privateKey = Key.decodeKey(Common.myPrivateKey);
 		Key publicKey = Key.decodeKey(Common.otherPublicKey);
 
 		EncryptResult res = CryptTool.encryptTextMessage(text, privateKey.key, publicKey.key);
-		Assert.assertNotNull(res);
-		Assert.assertNotNull(res.getNonce());
-		Assert.assertNotNull(res.getResult());
-		Assert.assertFalse(Common.isEmpty(res.getNonce()));
-		Assert.assertFalse(Common.isEmpty(res.getResult()));
+		assertNotNull(res);
+		assertNotNull(res.getNonce());
+		assertNotNull(res.getResult());
+		assertFalse(Common.isEmpty(res.getNonce()));
+		assertFalse(Common.isEmpty(res.getResult()));
 	}
 
 	@Test
@@ -95,7 +103,7 @@ public class CryptToolTest {
 		Key privateKey = Key.decodeKey(Common.myPrivateKey);
 		Key publicKey = Key.decodeKey(Common.myPublicKey);
 		byte[] derivedPublicKey = CryptTool.derivePublicKey(privateKey.key);
-		Assert.assertNotNull("derived public key", derivedPublicKey);
-		Assert.assertEquals(derivedPublicKey, publicKey.key);
+		assertNotNull("derived public key", derivedPublicKey);
+		assertArrayEquals(derivedPublicKey, publicKey.key);
 	}
 }
